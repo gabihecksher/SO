@@ -1,0 +1,10 @@
+abrir git bash
+dar "cd" em todos esses separadamente: Documents\NetBeansProjects\Escalonador\src\escalonador
+digitar isso:
+
+
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin https://github.com/gabihecksher/SO.git
+git push -u origin master
