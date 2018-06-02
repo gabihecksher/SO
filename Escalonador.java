@@ -140,32 +140,87 @@ public class Escalonador {
                     this.FTR.get(0).setTempoProcessamento(i);
                 }
                 this.FTR.remove(0);
-            } //ate aqui funciona
+            }
             else{
-                boolean removeu = false;
-                int tempo = this.FU.get(0).getTempoProcessamento();
-                int i;
-                for(i = 0; i <=2; i++){
-                    if(tempo > 0){ //se nao tiver acabado o processamento
-                        System.out.println("Tempo restante: " + tempo);
-                        this.FU.get(0).setTempoProcessamento(tempo-1);
-                        tempo = this.FU.get(0).getTempoProcessamento();
+                this.feedback();
+            }
+        }
+        
+    }
+    
+    public void feedback(){
+        List<Processo> fila1 = this.FU;
+        List<Processo> fila2 = new ArrayList<Processo>(); 
+        List<Processo> fila3 = new ArrayList<Processo>();
+        
+        while(fila1.size() != 0 || fila2.size() != 0 || fila3.size() != 0){
+            if(fila1.size() == 0){
+                if(fila2.size() == 0){
+                    if(fila3.size() == 0){
                     }
                     else{
-                        System.out.println("PROCESSO TERMINADO");
-                        this.FU.remove(0);
-                        removeu = true;
-                        i=3; //uma forma idiota de sair do loop pra nao dar erro
+                        int tempo_restante = processa(fila3.get(0), 8);
+                        if(tempo_restante != 0){
+                            Processo aux = fila3.get(0);
+                            fila3.remove(0);
+                            fila1.add(aux); //volta pra a terceira fila
+                            System.out.println("PROCESSO NÃO TERMINOU, VOLTOU PRA A FILA 1");
+                        }
+                        else{
+                            fila3.remove(0);
+                            System.out.println("PROCESSO FINALIZADO E REMOVIDO");
+                        }
                     }
                 }
-                if(!removeu){
-                    Processo aux = this.FU.get(0);
-                    this.FU.remove(0);
-                    this.adicionarEmFU(aux); //vai pro fim da fila            
+                else{
+                    int tempo_restante = processa(fila2.get(0), 4);
+                    if(tempo_restante != 0){
+                        Processo aux = fila2.get(0);
+                        fila2.remove(0);
+                        fila3.add(aux); //vai pra o final da segunda fila
+                        System.out.println("PROCESSO NÃO TERMINOU, PASSOU PRA A FILA 3");
+                    }
+                    else{
+                        fila2.remove(0);
+                        System.out.println("PROCESSO FINALIZADO E REMOVIDO");
+                    }
+                }
+            }
+            else{ //tem processo na fila1
+                int tempo_restante = processa(fila1.get(0), 2);
+                if(tempo_restante != 0){
+                    Processo aux = fila1.get(0);
+                    fila1.remove(0);
+                    fila2.add(aux); //vai pra a segunda fila
+                    System.out.println("PROCESSO NÃO TERMINOU, PASSOU PRA A FILA 2");
+                }
+                else{
+                    fila1.remove(0);
+                    System.out.println("PROCESSO FINALIZADO E REMOVIDO");
                 }
             }
         }
         
+    }
+    
+    public int processa(Processo processo, int quantum){
+        int i;
+        int tempo = processo.getTempoProcessamento();
+        System.out.println("INICIANDO PROCESSAMENTO");
+        System.out.println("QUANTUM: " + quantum);
+        for(i = 0; i < quantum; i++){
+            if(tempo > 0){ //se nao tiver acabado o processamento
+                System.out.println("Tempo restante: " + tempo);
+                processo.setTempoProcessamento(tempo-1);
+                tempo = processo.getTempoProcessamento();
+            }
+            else{
+                System.out.println("PROCESSO TERMINADO");
+                return 0;
+            }
+        }
+        System.out.println("PROCESSAMENTO FINALIZADO");
+        return tempo;
     }
     
     
@@ -181,11 +236,8 @@ public class Escalonador {
         escalonador.arquivoParaProcesso();
         //meu exemplo: C:\Users\gabriela\Documents\NetBeansProjects\Escalonador\src\escalonador\arquivo.txt
         
-        escalonador.mostraProcessos();
+        //escalonador.mostraProcessos();
         escalonador.escalonamento();
         
-        //resolver esses bugs aí depois
-        /*
-        */
     }
 }
