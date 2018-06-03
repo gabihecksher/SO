@@ -149,7 +149,7 @@ public class Escalonador {
     }
     
     public void feedback(){
-        List<Processo> fila1 = this.FU;
+        List<Processo> fila1 = organizaPorPrioridade(this.FU);
         List<Processo> fila2 = new ArrayList<Processo>(); 
         List<Processo> fila3 = new ArrayList<Processo>();
         
@@ -203,6 +203,7 @@ public class Escalonador {
         
     }
     
+    
     public int processa(Processo processo, int quantum){
         int i;
         int tempo = processo.getTempoProcessamento();
@@ -224,6 +225,20 @@ public class Escalonador {
     }
     
     
+    public static List<Processo> organizaPorPrioridade(List<Processo> fila){
+        List<Processo> aux = new ArrayList<Processo>();
+        int i;
+        int prioridade;
+        for(prioridade = 0; prioridade <= 3; prioridade++){
+            for(i = 0; i < fila.size(); i++){
+                if(fila.get(i).getPrioridade() == prioridade){
+                    aux.add(fila.get(i));
+                }
+            }
+        }
+        return aux;
+    }
+    
     public static void main(String[] args) {
         Escalonador escalonador = new Escalonador();
         
@@ -236,8 +251,14 @@ public class Escalonador {
         escalonador.arquivoParaProcesso();
         //meu exemplo: C:\Users\gabriela\Documents\NetBeansProjects\Escalonador\src\escalonador\arquivo.txt
         
-        //escalonador.mostraProcessos();
-        escalonador.escalonamento();
+        System.out.println("Processos não organizados:");
+        escalonador.mostraProcessos();
+        escalonador.FTR = organizaPorPrioridade(escalonador.FTR);
+        escalonador.FU = organizaPorPrioridade(escalonador.FU);
+        System.out.println("Processos ORGANIZADOS:");
+        escalonador.mostraProcessos();
+        
+        //escalonador.escalonamento();
         
     }
 }
