@@ -130,7 +130,6 @@ public class Escalonador {
         }
     }
 
-    //por enquanto só executa primeiro os processos da FTR e depois os da FU, nao coloquei o quantum ainda
     public void escalonamento(){
         while(this.FTR.size() != 0 || this.FU.size() != 0){
             if(this.FTR.size() != 0){ //se a FTR nao estiver vazia
@@ -142,14 +141,14 @@ public class Escalonador {
                 this.FTR.remove(0);
             }
             else{
+                this.FU = organizaPorPrioridade(this.FU);
                 this.feedback();
             }
         }
-        
     }
     
     public void feedback(){
-        List<Processo> fila1 = organizaPorPrioridade(this.FU);
+        List<Processo> fila1 = this.FU;
         List<Processo> fila2 = new ArrayList<Processo>(); 
         List<Processo> fila3 = new ArrayList<Processo>();
         
@@ -251,14 +250,9 @@ public class Escalonador {
         escalonador.arquivoParaProcesso();
         //meu exemplo: C:\Users\gabriela\Documents\NetBeansProjects\Escalonador\src\escalonador\arquivo.txt
         
-        System.out.println("Processos não organizados:");
-        escalonador.mostraProcessos();
-        escalonador.FTR = organizaPorPrioridade(escalonador.FTR);
-        escalonador.FU = organizaPorPrioridade(escalonador.FU);
-        System.out.println("Processos ORGANIZADOS:");
-        escalonador.mostraProcessos();
+        //escalonador.mostraProcessos();
         
-        //escalonador.escalonamento();
+        escalonador.escalonamento();
         
     }
 }
