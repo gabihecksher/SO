@@ -21,8 +21,13 @@ public class Escalonador {
 	private List<Processo> FE; //fila geral de processos
     private List<Processo> FTR; //fila de processos prontos do tipo tempo-real
     private List<Processo> FU; //fila de processos prontos do tipo usuario
-    private Processo processo_cpu; //processo sendo executado atualmente
+    private int quantum = 0;//quantum do processo atual no feedback
     private int timer = 0;
+    
+    // filas do feedback
+    private List<Processo> fila1 = new ArrayList<Processo>();
+    private List<Processo> fila2 = new ArrayList<Processo>(); 
+    private List<Processo> fila3 = new ArrayList<Processo>();
     
     /**
      * @param args the command line arguments
@@ -61,9 +66,14 @@ public class Escalonador {
         this.FE.add(novo);
     }
     
+    public void adicionarEmFila1(Processo novo){
+        this.fila1.add(novo);
+    }
+    
     public void adicionarEmFU(Processo novo){
         this.FU.add(novo);
     }
+
     
     public void adicionaProcesso(String[] informacoesProcesso, int id){
         Processo processoNovo = new Processo();        
@@ -134,12 +144,32 @@ public class Escalonador {
             System.out.println("Processo " + processo.getID()+": "+processo.getTempoChegada()+", "+processo.getPrioridade()+", "+processo.getTempoProcessamento()+", "+processo.getTamanho()+", "+processo.getQtdImpressoras()+", "+processo.getQtdScanners()+", "+processo.getQtdModems()+", "+processo.getQtdCDs());
             
         }
+        
+        System.out.println("------------------FEEDBACK---------------------");
+        System.out.println("fila1:---------------------------------------");
+        for(Processo processo : this.fila1){
+
+            System.out.println("Processo " + processo.getID()+": "+processo.getTempoChegada()+", "+processo.getPrioridade()+", "+processo.getTempoProcessamento()+", "+processo.getTamanho()+", "+processo.getQtdImpressoras()+", "+processo.getQtdScanners()+", "+processo.getQtdModems()+", "+processo.getQtdCDs());
+            
+        }
+        System.out.println("fila2:---------------------------------------");
+        for(Processo processo : this.fila2){
+
+            System.out.println("Processo " + processo.getID()+": "+processo.getTempoChegada()+", "+processo.getPrioridade()+", "+processo.getTempoProcessamento()+", "+processo.getTamanho()+", "+processo.getQtdImpressoras()+", "+processo.getQtdScanners()+", "+processo.getQtdModems()+", "+processo.getQtdCDs());
+            
+        }
+        System.out.println("fila3:---------------------------------------");
+        for(Processo processo : this.fila3){
+
+            System.out.println("Processo " + processo.getID()+": "+processo.getTempoChegada()+", "+processo.getPrioridade()+", "+processo.getTempoProcessamento()+", "+processo.getTamanho()+", "+processo.getQtdImpressoras()+", "+processo.getQtdScanners()+", "+processo.getQtdModems()+", "+processo.getQtdCDs());
+            
+        }
     }
 
     public void escalonamento() throws InterruptedException{
         while(this.FTR.size() != 0 || this.FU.size() != 0 || this.FE.size() != 0){
         	
-        	TimeUnit.SECONDS.sleep(5);
+        	TimeUnit.SECONDS.sleep(1);
         	System.out.println("\nTIMER: "+timer+"\n");
         	
         	int cont = 0;
@@ -150,6 +180,7 @@ public class Escalonador {
             	} 
             	if (processo.getPrioridade() > 0 && processo.getTempoChegada() == timer){
             		adicionarEmFU(processo);
+            		adicionarEmFila1(processo);
             		cont++;
             	}
         	}
@@ -160,8 +191,8 @@ public class Escalonador {
         	
         	mostraProcessos();
         	
-            if(this.FTR.size() != 0){ //se a FTR nao estiver vazia
-                int i;
+            if(this.FTR.size() != 0 && this.quantum == 0){ //se a FTR nao estiver vazia
+                //int i;
                 
                 System.out.println("processo: "+this.FTR.get(0).getID()+" Tempo restante: " + this.FTR.get(0).getTempoProcessamento());
                 this.FTR.get(0).setTempoProcessamento(this.FTR.get(0).getTempoProcessamento()- 1);
@@ -181,61 +212,65 @@ public class Escalonador {
             }
             this.timer++;
         }
+        mostraProcessos();
     }
     
     public void feedback(){
-        List<Processo> fila1 = this.FU;
-        List<Processo> fila2 = new ArrayList<Processo>(); 
-        List<Processo> fila3 = new ArrayList<Processo>();
-        
-        while(fila1.size() != 0 || fila2.size() != 0 || fila3.size() != 0){
+    	
+        if(fila1.size() != 0 || fila2.size() != 0 || fila3.size() != 0){
             if(fila1.size() == 0){
                 if(fila2.size() == 0){
                     if(fila3.size() == 0){
                     }
                     else{
-                        int tempo_restante = processa(fila3.get(0), 8);
-                        if(tempo_restante != 0){
+                    	if(this.quantum == 0)this.quantum = 8;
+                        int tempo_restante = processa(fila3.get(0));
+                        if(tempo_restante != 0 && this.quantum == 0){
                             Processo aux = fila3.get(0);
                             fila3.remove(0);
                             fila1.add(aux); //volta pra a terceira fila
                             System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, VOLTOU PRA A FILA 1");
                             
                         }
-                        else{
+                        else if (tempo_restante == 0){
                         	System.out.println("PROCESSO"+fila3.get(0).getID()+" FINALIZADO E REMOVIDO");
+                        	this.FU.remove(fila3.get(0));
                             fila3.remove(0);
                             
                         }
                     }
                 }
                 else{
-                    int tempo_restante = processa(fila2.get(0), 4);
-                    if(tempo_restante != 0){
+                	if(this.quantum == 0)this.quantum = 4;
+                    int tempo_restante = processa(fila2.get(0));
+                    if(tempo_restante != 0 && this.quantum == 0){
                         Processo aux = fila2.get(0);
                         fila2.remove(0);
                         fila3.add(aux); //vai pra o final da segunda fila
                         System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, PASSOU PRA A FILA 3");
                         
                     }
-                    else{
+                    else if (tempo_restante == 0){
                     	System.out.println("PROCESSO"+fila2.get(0).getID()+" FINALIZADO E REMOVIDO");
+                    	this.FU.remove(fila2.get(0));
                         fila2.remove(0);
                         
                     }
                 }
             }
             else{ //tem processo na fila1
-                int tempo_restante = processa(fila1.get(0), 2);
-                if(tempo_restante != 0){
+            	if(this.quantum == 0)this.quantum = 2;
+                int tempo_restante = processa(fila1.get(0));
+                if(tempo_restante != 0 && this.quantum == 0){
                     Processo aux = fila1.get(0);
                     fila1.remove(0);
                     fila2.add(aux); //vai pra a segunda fila
                     System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, PASSOU PRA A FILA 2");
                     
                 }
-                else{
+                else if (tempo_restante == 0){
                 	System.out.println("PROCESSO"+fila1.get(0).getID()+" FINALIZADO E REMOVIDO");
+                	this.FU.remove(fila1.get(0));
                     fila1.remove(0);
                     
                 }
@@ -245,22 +280,24 @@ public class Escalonador {
     }
     
     
-    public int processa(Processo processo, int quantum){
-        int i;
+    public int processa(Processo processo){
+        //int i;
         int tempo = processo.getTempoProcessamento();
         System.out.println("\nINICIANDO PROCESSAMENTO "+ processo.getID());
-        System.out.println("QUANTUM: " + quantum);
-        for(i = 0; i < quantum; i++){
+        System.out.println("QUANTUM: " + this.quantum);
+        if(this.quantum > 0){
             if(tempo > 0){ //se nao tiver acabado o processamento
-                System.out.println("processo: "+processo.getID()+" Tempo restante: " + tempo);
+                System.out.println("processo: "+processo.getID()+" Tempo restante: " + (tempo-1));
                 processo.setTempoProcessamento(tempo-1);
                 tempo = processo.getTempoProcessamento();
             }
             else{
                 System.out.println("PROCESSO TERMINADO "+ processo.getID());
+                this.quantum = 0;
                 return 0;
             }
-        }
+        } 
+        this.quantum --;
         System.out.println("PROCESSAMENTO FINALIZADO "+ processo.getID());
         return tempo;
     }
