@@ -18,6 +18,8 @@ import java.util.Collections;
  * @author gabriela
  */
 public class Escalonador {
+	private int velocidade = 1;// variavel que muda o tempo de clock
+	
 	private List<Processo> FE; //fila geral de processos
     private List<Processo> FTR; //fila de processos prontos do tipo tempo-real
     private List<Processo> FU; //fila de processos prontos do tipo usuario
@@ -169,7 +171,7 @@ public class Escalonador {
     public void escalonamento() throws InterruptedException{
         while(this.FTR.size() != 0 || this.FU.size() != 0 || this.FE.size() != 0){
         	
-        	TimeUnit.SECONDS.sleep(1);
+        	TimeUnit.SECONDS.sleep(velocidade);
         	System.out.println("\nTIMER: "+timer+"\n");
         	
         	int cont = 0;
