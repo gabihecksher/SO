@@ -18,18 +18,27 @@ import java.util.Collections;
  * @author gabriela
  */
 public class Escalonador {
-	private int velocidade = 1;// variavel que muda o tempo de clock
+	private int velocidade = 1;// variavel que muda o tempo de clock em segundos
 	
 	private List<Processo> FE; //fila geral de processos
     private List<Processo> FTR; //fila de processos prontos do tipo tempo-real
     private List<Processo> FU; //fila de processos prontos do tipo usuario
+    private List<Processo> FB;// fila de processos bloqueados por entrada e saida
+    
     private int quantum = 0;//quantum do processo atual no feedback
-    private int timer = 0;
+    private int timer = 0; 
+    private int[] recurso = new int[4];
     
     // filas do feedback
     private List<Processo> fila1 = new ArrayList<Processo>();
     private List<Processo> fila2 = new ArrayList<Processo>(); 
     private List<Processo> fila3 = new ArrayList<Processo>();
+    
+    //quantum de entrada e saída
+    private int quantum_imp = 0;
+    private int quantum_scan = 0;
+    private int quantum_mod = 0;
+    private int quantum_CD = 0;
     
     /**
      * @param args the command line arguments
@@ -46,6 +55,9 @@ public class Escalonador {
     public void setFU(List<Processo> fu){
         this.FU = fu;
     }
+    public void setFB(List<Processo> fb){
+        this.FB = fb;
+    }
     
     public List<Processo> getFTR(){
         return this.FTR;
@@ -58,7 +70,9 @@ public class Escalonador {
     public List<Processo> getFU(){
         return this.FU;
     }
-    
+    public List<Processo> getFB(){
+        return this.FB;
+    }
     
     public void adicionarEmFTR(Processo novo){
         this.FTR.add(novo);
@@ -74,6 +88,10 @@ public class Escalonador {
     
     public void adicionarEmFU(Processo novo){
         this.FU.add(novo);
+    }
+    
+    public void adicionarEmFB(Processo novo){
+        this.FB.add(novo);
     }
 
     
@@ -146,6 +164,12 @@ public class Escalonador {
             System.out.println("Processo " + processo.getID()+": "+processo.getTempoChegada()+", "+processo.getPrioridade()+", "+processo.getTempoProcessamento()+", "+processo.getTamanho()+", "+processo.getQtdImpressoras()+", "+processo.getQtdScanners()+", "+processo.getQtdModems()+", "+processo.getQtdCDs());
             
         }
+        System.out.println("FB:---------------------------------------");
+        for(Processo processo : this.getFB()){
+
+            System.out.println("Processo " + processo.getID()+": "+processo.getTempoChegada()+", "+processo.getPrioridade()+", "+processo.getTempoProcessamento()+", "+processo.getTamanho()+", "+processo.getQtdImpressoras()+", "+processo.getQtdScanners()+", "+processo.getQtdModems()+", "+processo.getQtdCDs());
+            
+        }
         
         System.out.println("------------------FEEDBACK---------------------");
         System.out.println("fila1:---------------------------------------");
@@ -167,50 +191,140 @@ public class Escalonador {
             
         }
     }
+    
+    public void entrada_saida(Processo p) {
+    	if(!usando_recurso(p.getID())) {
+    		if(p.getQtdImpressoras() > 0 && quantum_imp == 0) {
+        		quantum_imp = 5;
+        		recurso[0] = p.getID();
+        		p.setQtdImpressoras(p.getQtdImpressoras() - 1);
+
+        	}else if(p.getQtdScanners() > 0 && quantum_scan == 0) {
+        		quantum_scan = 5;
+        		recurso[1] = p.getID();
+        		p.setQtdScanners(p.getQtdScanners() - 1);
+        		
+        	} else if(p.getQtdModems() > 0 && quantum_mod == 0) {
+        		quantum_mod = 3;
+        		recurso[2] = p.getID();
+        		p.setQtdModems(p.getQtdModems() - 1);
+        			
+        	}else if(p.getQtdCDs() > 0 && quantum_CD == 0) {
+        		quantum_CD = 3;
+        		recurso[3] = p.getID();
+        		p.setQtdCDs(p.getQtdCDs() - 1);
+        		
+        	}   	
+    	}    	
+    }
+    
+    public void FB_manutencao () {
+    	
+    	if(quantum_imp > 0) {
+    		quantum_imp--;
+    	}else {
+    		recurso[0] = -1;
+    	}
+    	if(quantum_scan > 0) {
+    		quantum_scan--;
+    	}else {
+    		recurso[1] = -1;
+    	}
+    	if(quantum_mod > 0) {
+    		quantum_mod--;
+    	}else {
+    		recurso[2] = -1;
+    	}
+    	if(quantum_CD > 0) {
+    		quantum_CD--;
+    	}else {
+    		recurso[3] = -1;
+    	}
+    	
+    	
+    	for(int i = 0; i < FB.size(); i++) {
+			if(!usa_recurso(FB.get(i)) && !usando_recurso(FB.get(i).getID())) {
+				if(FB.get(i).getPrioridade() == 0) {
+					adicionarEmFTR(FB.get(i));
+					FB.remove(i);
+				}else {
+					adicionarEmFila1(FB.get(i));
+					FB.remove(i);
+				}
+			}else {
+				entrada_saida(FB.get(i));
+			}
+		}
+    }
+    
+    public boolean usa_recurso (Processo p) {
+    	return (p.getQtdImpressoras()+p.getQtdCDs()+p.getQtdModems()+p.getQtdScanners()) > 0;
+    }
+    
+    public boolean usando_recurso(int id){
+    	for (int i = 0; i < 4; i++) {
+			if(recurso[i] == id) {
+				return true;
+			}
+		}
+    	return false;
+    }
 
     public void escalonamento() throws InterruptedException{
-        while(this.FTR.size() != 0 || this.FU.size() != 0 || this.FE.size() != 0){
+        while(this.FTR.size() != 0 || this.FU.size() != 0 || this.FE.size() != 0 || this.FB.size() != 0 || this.fila1.size() != 0|| this.fila2.size() != 0|| this.fila3.size() != 0){
         	
-        	TimeUnit.SECONDS.sleep(velocidade);
+        	//TimeUnit.SECONDS.sleep(velocidade);
         	System.out.println("\nTIMER: "+timer+"\n");
         	
         	int cont = 0;
-        	for(Processo processo: this.getFE()) {
+        	for(Processo processo: this.getFE()) {// separa os tipos de processo pela prioridade
         		if(processo.getPrioridade() == 0 && processo.getTempoChegada() == timer) {
             		adicionarEmFTR(processo);
             		cont++;
             	} 
             	if (processo.getPrioridade() > 0 && processo.getTempoChegada() == timer){
             		adicionarEmFU(processo);
-            		adicionarEmFila1(processo);
+            		adicionarEmFila1(processo);// adiciona logo na fila1 do feedback quando é adicionado em FU
             		cont++;
             	}
         	}
         	for(int i = 0; i < cont; i++) {
         		this.FE.remove(0);
         	}
-
+        	
+        	FB_manutencao();// método que faz a manutenção da fila de entrada e saida
+        	System.out.println("I: "+quantum_imp+" S: "+quantum_scan+" M: "+quantum_mod+" CD: "+quantum_CD+"\n");
+        	System.out.println("P: "+recurso[0]+"  P: "+recurso[1]+" P: "+recurso[2]+"  P: "+recurso[3]+"\n");
         	
         	mostraProcessos();
         	
             if(this.FTR.size() != 0 && this.quantum == 0){ //se a FTR nao estiver vazia
-                //int i;
                 
-                System.out.println("processo: "+this.FTR.get(0).getID()+" Tempo restante: " + this.FTR.get(0).getTempoProcessamento());
-                this.FTR.get(0).setTempoProcessamento(this.FTR.get(0).getTempoProcessamento()- 1);
-                
-                /*for(i = this.FTR.get(0).getTempoProcessamento(); i > 0; i--){
-                    System.out.println("processo: "+this.FTR.get(0).getID()+" Tempo restante: " + i);
-                    this.FTR.get(0).setTempoProcessamento(i);
-                }*/
-                if(this.FTR.get(0).getTempoProcessamento() == 0) {
-                	this.FTR.remove(0);
-                }
-                
+            	if(!usa_recurso(FTR.get(0))) {
+            		System.out.println("processo: "+this.FTR.get(0).getID()+" Tempo restante: " + this.FTR.get(0).getTempoProcessamento());
+                    this.FTR.get(0).setTempoProcessamento(this.FTR.get(0).getTempoProcessamento()- 1);// decrementa o tempo de processamento
+          
+                    if(this.FTR.get(0).getTempoProcessamento() == 0) {
+                    	this.FTR.remove(0);
+                    }
+            	} else {
+            		adicionarEmFB(FTR.get(0));
+            		FTR.remove(0);
+            	}
             }
             else{
-                this.FU = organizaPorPrioridade(this.FU);
-                this.feedback();
+                //this.FU = organizaPorPrioridade(this.FU);
+                if(FU.size() > 0) {
+	            	  if(!usa_recurso(FU.get(0))) {
+	                  	this.feedback();
+	                  }else {
+	                  	adicionarEmFB(FU.get(0));
+	                  	fila1.remove(0);
+	                  	FU.remove(0);
+	                  }
+                }else {
+                	this.feedback();
+                }
             }
             this.timer++;
         }
@@ -236,6 +350,7 @@ public class Escalonador {
                         }
                         else if (tempo_restante == 0){
                         	System.out.println("PROCESSO"+fila3.get(0).getID()+" FINALIZADO E REMOVIDO");
+                        	quantum = 0;
                         	this.FU.remove(fila3.get(0));
                             fila3.remove(0);
                             
@@ -254,6 +369,7 @@ public class Escalonador {
                     }
                     else if (tempo_restante == 0){
                     	System.out.println("PROCESSO"+fila2.get(0).getID()+" FINALIZADO E REMOVIDO");
+                    	quantum = 0;
                     	this.FU.remove(fila2.get(0));
                         fila2.remove(0);
                         
@@ -272,6 +388,7 @@ public class Escalonador {
                 }
                 else if (tempo_restante == 0){
                 	System.out.println("PROCESSO"+fila1.get(0).getID()+" FINALIZADO E REMOVIDO");
+                	quantum = 0;
                 	this.FU.remove(fila1.get(0));
                     fila1.remove(0);
                     
@@ -283,14 +400,13 @@ public class Escalonador {
     
     
     public int processa(Processo processo){
-        //int i;
         int tempo = processo.getTempoProcessamento();
         System.out.println("\nINICIANDO PROCESSAMENTO "+ processo.getID());
         System.out.println("QUANTUM: " + this.quantum);
         if(this.quantum > 0){
             if(tempo > 0){ //se nao tiver acabado o processamento
                 System.out.println("processo: "+processo.getID()+" Tempo restante: " + (tempo-1));
-                processo.setTempoProcessamento(tempo-1);
+                processo.setTempoProcessamento(tempo-1);// decrementa o tempo de processamento
                 tempo = processo.getTempoProcessamento();
             }
             else{
@@ -330,6 +446,9 @@ public class Escalonador {
         
         List<Processo> fu = new ArrayList<Processo>();
         escalonador.setFU(fu);
+        
+        List<Processo> fb = new ArrayList<Processo>();
+        escalonador.setFB(fb);
         
         escalonador.arquivoParaProcesso();
         //meu exemplo: C:\Users\gabriela\Documents\NetBeansProjects\Escalonador\src\escalonador\arquivo.txt

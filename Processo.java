@@ -86,8 +86,7 @@ public class Processo implements Comparable<Processo>{
     
     public int getTamanho(){
         return this.tamanho;
-    }
-    
+    }  
     public int getQtdImpressoras(){
         return this.qtd_impressoras;
     }
