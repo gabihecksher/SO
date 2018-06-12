@@ -18,7 +18,7 @@ import java.util.Collections;
  * @author gabriela
  */
 public class Escalonador {
-	private int velocidade = 1;// variavel que muda o tempo de clock em segundos
+	private int velocidade = 2;// variavel que muda o tempo de clock em segundos
 	
 	private List<Processo> FE; //fila geral de processos
     private List<Processo> FTR; //fila de processos prontos do tipo tempo-real
@@ -28,6 +28,7 @@ public class Escalonador {
     private int quantum = 0;//quantum do processo atual no feedback
     private int timer = 0; 
     private int[] recurso = new int[4];
+    private int filafeedBack = 0;
     
     // filas do feedback
     private List<Processo> fila1 = new ArrayList<Processo>();
@@ -93,7 +94,17 @@ public class Escalonador {
     public void adicionarEmFB(Processo novo){
         this.FB.add(novo);
     }
-
+    
+    public boolean memoriaFull(Processo p) {
+    	int tamanhoFila = 0;
+    	for (int i=0; i < FE.size(); i++) {
+    		tamanhoFila += FE.get(i).getTamanho();
+    	}
+    	if ((tamanhoFila + p.getTamanho()) > 512) {
+    		return true;
+    	}
+    	return false;
+    }
     
     public void adicionaProcesso(String[] informacoesProcesso, int id){
         Processo processoNovo = new Processo();        
@@ -108,7 +119,12 @@ public class Escalonador {
         processoNovo.setQtdScanners(Integer.parseInt(informacoesProcesso[5]));
         processoNovo.setQtdModems(Integer.parseInt(informacoesProcesso[6]));
         processoNovo.setQtdCDs(Integer.parseInt(informacoesProcesso[7]));
-        this.adicionarEmFE(processoNovo);
+        if (memoriaFull(processoNovo)) {
+        	System.out.println("O processo " + processoNovo.getID() + " não pode ser inserido. A memória esta cheia");
+        }
+        else {
+            this.adicionarEmFE(processoNovo);
+        }
                 
     }
     
@@ -273,7 +289,7 @@ public class Escalonador {
     public void escalonamento() throws InterruptedException{
         while(this.FTR.size() != 0 || this.FU.size() != 0 || this.FE.size() != 0 || this.FB.size() != 0 || this.fila1.size() != 0|| this.fila2.size() != 0|| this.fila3.size() != 0){
         	
-        	//TimeUnit.SECONDS.sleep(velocidade);
+        	TimeUnit.SECONDS.sleep(velocidade);
         	System.out.println("\nTIMER: "+timer+"\n");
         	
         	int cont = 0;
@@ -333,69 +349,80 @@ public class Escalonador {
     
     public void feedback(){
     	
-        if(fila1.size() != 0 || fila2.size() != 0 || fila3.size() != 0){
-            if(fila1.size() == 0){
-                if(fila2.size() == 0){
-                    if(fila3.size() == 0){
-                    }
-                    else{
-                    	if(this.quantum == 0)this.quantum = 8;
-                        int tempo_restante = processa(fila3.get(0));
-                        if(tempo_restante != 0 && this.quantum == 0){
-                            Processo aux = fila3.get(0);
-                            fila3.remove(0);
-                            fila1.add(aux); //volta pra a terceira fila
-                            System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, VOLTOU PRA A FILA 1");
-                            
-                        }
-                        else if (tempo_restante == 0){
-                        	System.out.println("PROCESSO"+fila3.get(0).getID()+" FINALIZADO E REMOVIDO");
-                        	quantum = 0;
-                        	this.FU.remove(fila3.get(0));
-                            fila3.remove(0);
-                            
-                        }
-                    }
-                }
-                else{
-                	if(this.quantum == 0)this.quantum = 4;
-                    int tempo_restante = processa(fila2.get(0));
-                    if(tempo_restante != 0 && this.quantum == 0){
-                        Processo aux = fila2.get(0);
-                        fila2.remove(0);
-                        fila3.add(aux); //vai pra o final da segunda fila
-                        System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, PASSOU PRA A FILA 3");
-                        
-                    }
-                    else if (tempo_restante == 0){
-                    	System.out.println("PROCESSO"+fila2.get(0).getID()+" FINALIZADO E REMOVIDO");
-                    	quantum = 0;
-                    	this.FU.remove(fila2.get(0));
-                        fila2.remove(0);
-                        
-                    }
-                }
-            }
-            else{ //tem processo na fila1
-            	if(this.quantum == 0)this.quantum = 2;
+       // if(fila1.size() != 0 || fila2.size() != 0 || fila3.size() != 0){
+    	
+    	
+            if(fila1.size() != 0 && (filafeedBack == 1 || filafeedBack == 0)){// verifica se pode executar processos da fila 1
+            	if(this.quantum == 0) {
+            		this.quantum = 2;
+            		this.filafeedBack = 1;
+            	}
                 int tempo_restante = processa(fila1.get(0));
                 if(tempo_restante != 0 && this.quantum == 0){
                     Processo aux = fila1.get(0);
                     fila1.remove(0);
                     fila2.add(aux); //vai pra a segunda fila
+                    this.filafeedBack = 0;
                     System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, PASSOU PRA A FILA 2");
                     
                 }
                 else if (tempo_restante == 0){
                 	System.out.println("PROCESSO"+fila1.get(0).getID()+" FINALIZADO E REMOVIDO");
                 	quantum = 0;
+                	this.filafeedBack = 0;
                 	this.FU.remove(fila1.get(0));
                     fila1.remove(0);
                     
                 }
+                
             }
-        }
-        
+            else if(fila2.size() != 0 && (filafeedBack == 2 || filafeedBack == 0)){// verifica se pode executar processos da fila 2
+                	if(this.quantum == 0) {
+                		this.quantum = 4;
+                		this.filafeedBack = 2;
+                	}
+                    int tempo_restante = processa(fila2.get(0));
+                    if(tempo_restante != 0 && this.quantum == 0){
+                        Processo aux = fila2.get(0);
+                        fila2.remove(0);
+                        fila3.add(aux); //vai pra a terceira fila
+                        this.filafeedBack = 0;
+                        System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, PASSOU PRA A FILA 3");
+                        
+                    }
+                    else if (tempo_restante == 0){
+                    	System.out.println("PROCESSO"+fila2.get(0).getID()+" FINALIZADO E REMOVIDO");
+                    	quantum = 0;
+                    	this.filafeedBack = 0;
+                    	this.FU.remove(fila2.get(0));
+                        fila2.remove(0);
+                        
+                    }
+            }
+        	else if(fila3.size() != 0 && (filafeedBack == 3 || filafeedBack == 0)){// verifica se pode executar processos da fila 3
+            	if(this.quantum == 0) {
+            		this.quantum = 8;
+            		this.filafeedBack = 3;
+            	}
+                int tempo_restante = processa(fila3.get(0));
+                if(tempo_restante != 0 && this.quantum == 0){
+                    Processo aux = fila3.get(0);
+                    fila3.remove(0);
+                    fila1.add(aux); //volta pra a primeira fila
+                    this.filafeedBack = 0;
+                    System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, VOLTOU PRA A FILA 1");
+                    
+                }
+                else if (tempo_restante == 0){
+                	System.out.println("PROCESSO"+fila3.get(0).getID()+" FINALIZADO E REMOVIDO");
+                	quantum = 0;
+                	this.filafeedBack = 0;
+                	this.FU.remove(fila3.get(0));
+                    fila3.remove(0);
+                    
+                }
+            }
+        //} 
     }
     
     
@@ -412,6 +439,7 @@ public class Escalonador {
             else{
                 System.out.println("PROCESSO TERMINADO "+ processo.getID());
                 this.quantum = 0;
+                this.filafeedBack = 0;
                 return 0;
             }
         } 
