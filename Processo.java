@@ -10,14 +10,29 @@ package escalonador;
  *
  * @author gabriela
  */
-public class Processo {
+public class Processo implements Comparable<Processo>{
+	private int id;
     private int tempo_chegada;
     private int prioridade; //0 = tempo real     1, 2 ou 3 = prioridades normais para processos de usuarios
     private int tempo_processamento;
     private int tamanho; //em Mbytes
     private int qtd_impressoras, qtd_cds, qtd_modems, qtd_scanners;
+    
+    @Override
+    public int compareTo(Processo outroProcesso) {
+         if (this.tempo_chegada < outroProcesso.getTempoChegada()) {
+              return -1;
+         }
+         if (this.tempo_chegada > outroProcesso.getTempoChegada()) {
+              return 1;
+         }
+         return 0;
+    }
    
     //setters
+    public void setID(int id){
+        this.id = id;
+    }
     
     public void setTempoChegada(int tempo){
         this.tempo_chegada = tempo;
@@ -53,6 +68,10 @@ public class Processo {
     
     //getters
     
+    public int getID(){
+        return this.id;
+    }
+    
     public int getTempoChegada(){
         return this.tempo_chegada;
     }
@@ -67,8 +86,7 @@ public class Processo {
     
     public int getTamanho(){
         return this.tamanho;
-    }
-    
+    }  
     public int getQtdImpressoras(){
         return this.qtd_impressoras;
     }
