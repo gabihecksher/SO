@@ -36,7 +36,7 @@ public class Escalonador {
     private List<Processo> fila2 = new ArrayList<Processo>(); 
     private List<Processo> fila3 = new ArrayList<Processo>();
     
-    //quantum de entrada e saÃ­da
+    //quantum de entrada e saída
     private int quantum_imp = 0;
     private int quantum_scan = 0;
     private int quantum_mod = 0;
@@ -121,7 +121,7 @@ public class Escalonador {
         processoNovo.setQtdModems(Integer.parseInt(informacoesProcesso[6]));
         processoNovo.setQtdCDs(Integer.parseInt(informacoesProcesso[7]));
         if (memoriaFull(processoNovo)) {
-        	System.err.println("O processo " + processoNovo.getID() + " nÃ£o pode ser inserido. A memÃ³ria esta cheia");
+        	System.err.println("O processo " + processoNovo.getID() + " não pode ser inserido. A memória esta cheia");
         }
         else {
             this.adicionarEmFE(processoNovo);
@@ -129,7 +129,7 @@ public class Escalonador {
                 
     }
     
-    public void arquivoParaProcesso(){ //coleta as informaÃ§Ãµes do arquivo, transforma em processos e adiciona no escalonador
+    public void arquivoParaProcesso(){ //coleta as informações do arquivo, transforma em processos e adiciona no escalonador
         Scanner ler = new Scanner(System.in);
         int id = 1;
  
@@ -294,7 +294,7 @@ public class Escalonador {
         	
         	TimeUnit.SECONDS.sleep(velocidade);
         	System.out.println();
-                System.out.println(ConsoleColors.BLACK_BOLD+"âŒš: "+timer+"\n"+ConsoleColors.RESET);
+                System.out.println(ConsoleColors.BLACK_BOLD+"⌚: "+timer+"\n"+ConsoleColors.RESET);
         	
         	int cont = 0;
         	for(Processo processo: this.getFE()) {// separa os tipos de processo pela prioridade
@@ -304,7 +304,7 @@ public class Escalonador {
             	} 
             	if (processo.getPrioridade() > 0 && processo.getTempoChegada() == timer){
             		adicionarEmFU(processo);
-            		adicionarEmFila1(processo);// adiciona logo na fila1 do feedback quando Ã© adicionado em FU
+            		adicionarEmFila1(processo);// adiciona logo na fila1 do feedback quando é adicionado em FU
             		cont++;
             	}
         	}
@@ -312,7 +312,7 @@ public class Escalonador {
         		this.FE.remove(0);
         	}
         	
-        	FB_manutencao();// mÃ©todo que faz a manutenÃ§Ã£o da fila de entrada e saida
+        	FB_manutencao();// método que faz a manutenção da fila de entrada e saida
         	System.out.println("Impressoras: "+quantum_imp+" Scanners: "+quantum_scan+" Modems: "+quantum_mod+" CDs: "+quantum_CD+"\n");
         	System.out.println("P: "+recurso[0]+"  P: "+recurso[1]+" P: "+recurso[2]+"  P: "+recurso[3]+"\n");
         	
@@ -367,7 +367,7 @@ public class Escalonador {
                     fila1.remove(0);
                     fila2.add(aux); //vai pra a segunda fila
                     this.filafeedBack = 0;
-                    System.out.println("PROCESSO"+aux.getID()+" NÃƒO TERMINOU, PASSOU PRA A FILA 2");
+                    System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, PASSOU PRA A FILA 2");
                     
                 }
                 else if (tempo_restante == 0){
@@ -391,7 +391,7 @@ public class Escalonador {
                         fila2.remove(0);
                         fila3.add(aux); //vai pra a terceira fila
                         this.filafeedBack = 0;
-                        System.out.println("PROCESSO"+aux.getID()+" NÃƒO TERMINOU, PASSOU PRA A FILA 3");
+                        System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, PASSOU PRA A FILA 3");
                         
                     }
                     else if (tempo_restante == 0){
@@ -414,7 +414,7 @@ public class Escalonador {
                     fila3.remove(0);
                     fila1.add(aux); //volta pra a primeira fila
                     this.filafeedBack = 0;
-                    System.out.println("PROCESSO"+aux.getID()+" NÃƒO TERMINOU, VOLTOU PRA A FILA 1");
+                    System.out.println("PROCESSO"+aux.getID()+" NÃO TERMINOU, VOLTOU PRA A FILA 1");
                     
                 }
                 else if (tempo_restante == 0){
